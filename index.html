@@ -413,23 +413,41 @@ async function saveNote() {
 // ── DELETE ──
 function openDelModal() {
   if (!currentId) return;
-  deleteTarget = currentId;
+  deleteTarget = currentId; // capture the ID to delete
   document.getElementById('del-modal').classList.add('show');
 }
+
 function closeModal() {
   document.getElementById('del-modal').classList.remove('show');
   deleteTarget = null;
 }
+
 async function confirmDelete() {
   if (!deleteTarget) return;
-  closeModal();
+
+  // FIX: Save the target ID locally BEFORE closing the modal or nulling deleteTarget
+  const idToDelete = deleteTarget;
+
+  // Close modal first (UI feedback)
+  document.getElementById('del-modal').classList.remove('show');
+  deleteTarget = null;
+
   setLoading(true);
   try {
-    await deleteDoc(doc(db, COLL, deleteTarget));
-    if (currentId === deleteTarget) deselectNote();
-    deleteTarget = null;
+    await deleteDoc(doc(db, COLL, idToDelete));
+
+    // FIX: Compare against the saved local variable, not the already-nulled deleteTarget
+    if (currentId === idToDelete) {
+      currentId = null;
+      isDirty = false;
+      document.getElementById('editor-panel').classList.remove('show');
+      document.getElementById('empty-state').style.display = 'flex';
+    }
+
     toast('Note deleted 🗑','warning');
-  } catch(e) { toast('Error deleting: ' + e.message,'error'); }
+  } catch(e) {
+    toast('Error deleting: ' + e.message, 'error');
+  }
   setLoading(false);
 }
 
